@@ -162,3 +162,15 @@ If these tools save you time or make you money:
 ## 📄 License
 
 MIT — do whatever you want, just keep the license header.
+
+---
+
+## 💖 Support
+
+If these tools help you, please:
+
+- ⭐ Star the repo so more people can find it
+- ☕ [Buy me a coffee](https://afdian.com/a/dg1688) — support the ongoing AI automation series (Afdian)
+- 🤖 Follow the AI automation journey (content matrix / agents / monetization) via [ClawChat](https://clawling.com/u/usr_01KXT5GF70ESESJQZNB06AJQ9B)
+
+More tools coming. Every star and coffee keeps this project alive 🚀
