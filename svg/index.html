@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SVG 图标生成器</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --card: #151c2e;
+    --line: #263149;
+    --txt: #e6ecf5;
+    --muted: #8b97ad;
+    --accent: #4A6CF7;
+    --accent2: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 70% -10%, #1b2540 0%, var(--bg) 55%);
+    color: var(--txt); min-height: 100vh; padding: 32px 16px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .5px; }
+  .sub { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px;
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  input[type="text"], select {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: #0f1626; color: var(--txt); font-size: 14px; outline: none;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  input[type="color"] {
+    width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 10px;
+    background: #0f1626; cursor: pointer; padding: 4px;
+  }
+  button {
+    border: none; cursor: pointer; font-size: 14px; border-radius: 10px; padding: 11px 16px;
+    font-weight: 600; transition: transform .05s ease, opacity .2s;
+  }
+  button:active { transform: translateY(1px); }
+  .primary { background: linear-gradient(135deg, var(--accent), #7c3aed); color: #fff; width: 100%; margin-top: 18px; }
+  .primary:disabled { opacity: .6; cursor: wait; }
+  .ghost { background: #1c2740; color: var(--txt); border: 1px solid var(--line); }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .preview {
+    border: 1px dashed var(--line); border-radius: 12px; min-height: 240px;
+    display: flex; align-items: center; justify-content: center; padding: 18px;
+    background:
+      linear-gradient(45deg, #0f1626 25%, transparent 25%) 0 0/20px 20px,
+      linear-gradient(-45deg, #0f1626 25%, transparent 25%) 0 0/20px 20px,
+      #0b1020;
+  }
+  .preview svg { max-width: 220px; max-height: 220px; }
+  .placeholder { color: var(--muted); font-size: 14px; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  .err { color: #ff6b6b; }
+  textarea {
+    width: 100%; height: 120px; margin-top: 12px; background: #0f1626; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 12px;
+    font-family: ui-monospace, monospace; resize: vertical;
+  }
+  .tag { display:inline-block; font-size:12px; color:var(--accent2); border:1px solid var(--line); padding:2px 8px; border-radius:20px; margin-left:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎨 SVG 图标生成器 <span class="tag">DeepSeek 驱动</span></h1>
+  <div class="sub">输入描述（如「搞怪小猫」「房子」「云存储」），一键生成 Iconfont 风格 SVG 图标。</div>
+
+  <div class="grid">
+    <!-- 左侧：控制 -->
+    <div class="card">
+      <label>图标描述</label>
+      <input type="text" id="prompt" placeholder="例如：搞怪小猫 / 一栋房子 / 闪电图标" />
+
+      <label>DeepSeek API Key（已预填，可修改）</label>
+      <input type="text" id="apikey" placeholder="sk-..." value="sk-6dd6da03441e4f628c7638f138c3ef88" />
+
+      <label>图标风格</label>
+      <select id="style">
+        <option value="line">线性（描边）</option>
+        <option value="filled">填充（实心）</option>
+        <option value="duotone">双色（层次）</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>主色</label>
+          <input type="color" id="color" value="#4A6CF7" />
+        </div>
+        <div>
+          <label>预览尺寸 (px)</label>
+          <input type="text" id="size" value="256" inputmode="numeric" />
+        </div>
+      </div>
+
+      <button class="primary" id="gen">⚡ 生成图标</button>
+      <div class="status" id="status">就绪</div>
+    </div>
+
+    <!-- 右侧：预览 -->
+    <div class="card">
+      <label>预览</label>
+      <div class="preview" id="preview">
+        <span class="placeholder">生成的图标会显示在这里</span>
+      </div>
+      <div class="btn-row">
+        <button class="ghost" id="dlSvg">⬇ 下载 SVG</button>
+        <button class="ghost" id="dlPng">⬇ 下载 PNG</button>
+        <button class="ghost" id="copy">📋 复制代码</button>
+      </div>
+      <textarea id="code" readonly placeholder="SVG 代码将显示在这里，可直接复制使用"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let currentSvg = "";
+
+  function setStatus(msg, isErr) {
+    const el = $("status");
+    el.textContent = msg;
+    el.className = "status" + (isErr ? " err" : "");
+  }
+
+  function applyStyle(svgEl, style, color) {
+    const shapes = svgEl.querySelectorAll("path,circle,rect,line,polyline,polygon,ellipse");
+    shapes.forEach((s) => {
+      if (style === "line") { s.setAttribute("stroke", color); s.setAttribute("fill", "none"); }
+      else if (style === "filled") { s.setAttribute("fill", color); s.setAttribute("stroke", "none"); }
+    });
+    if (style === "line") { svgEl.setAttribute("fill", "none"); svgEl.setAttribute("stroke", color); }
+    if (style === "filled") { svgEl.setAttribute("fill", color); svgEl.setAttribute("stroke", "none"); }
+  }
+
+  function render(svg, style, color, size) {
+    currentSvg = svg;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = svg;
+    const svgEl = tmp.querySelector("svg");
+    if (!svgEl) { setStatus("生成的 SVG 无法解析", true); return; }
+    applyStyle(svgEl, style, color);
+    svgEl.setAttribute("width", size);
+    svgEl.setAttribute("height", size);
+    $("preview").innerHTML = "";
+    $("preview").appendChild(svgEl);
+    $("code").value = svgEl.outerHTML;
+  }
+
+  const SYSTEM_PROMPT =
+    "你是专业的图标设计师，风格参考阿里云图标库 / Iconfont 的扁平图标。\n" +
+    "根据描述生成一个简洁、可识别的 SVG 图标。硬性要求：\n" +
+    "1. 只输出纯 SVG 代码，不要 markdown 代码块、不要任何解释文字。\n" +
+    "2. 根节点必须是 <svg>，viewBox 固定为 '0 0 1024 1024'。\n" +
+    "3. 风格：__STYLE__。\n" +
+    "4. 颜色：主色使用 '__COLOR__'（双色时辅助色用它的浅色调），不要使用其他随机色。\n" +
+    "5. 图形居中、留白合理、轮廓清晰。\n" +
+    "6. 除非描述明确要求，否则不要包含 <text> 文字。";
+
+  function buildSystem(style, color) {
+    const sd = {
+      line: "线性图标：仅描边，stroke-width 约 48，无填充，圆角拐点，简洁",
+      filled: "填充图标：仅纯色填充，无描边，块面简洁",
+      duotone: "双色图标：主色 + 浅色辅助，主形填充主色、细节用浅色，层次清晰",
+    };
+    return SYSTEM_PROMPT.replace("__STYLE__", sd[style] || sd.line).replace("__COLOR__", color);
+  }
+
+  function clientExtractSvg(raw) {
+    let s = raw.replace(/^```(?:svg|xml)?\s*|\s*```$/g, "").trim();
+    const start = s.search(/<svg[\s\S]*/i);
+    if (start < 0) return null;
+    let frag = s.slice(start);
+    const close = frag.search(/<\/svg\s*>/i);
+    if (close >= 0) frag = frag.slice(0, close + "</svg>".length);
+    else frag = frag.trim() + "\n</svg>";
+    return frag.trim();
+  }
+
+  async function generate() {
+    const prompt = $("prompt").value.trim();
+    const key = $("apikey").value.trim();
+    if (!prompt) { setStatus("请先输入图标描述", true); return; }
+    if (!key) { setStatus("请先填写 DeepSeek API Key", true); return; }
+    const style = $("style").value;
+    const color = $("color").value;
+    const size = parseInt($("size").value, 10) || 256;
+
+    $("gen").disabled = true;
+    const MAX_TRIES = 4;
+    let lastErr = "";
+    for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+      setStatus(`生成中…（第 ${attempt}/${MAX_TRIES} 次，调用 DeepSeek）`);
+      try {
+        const res = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            temperature: 0.7,
+            max_tokens: 2000,
+            messages: [
+              { role: "system", content: buildSystem(style, color) },
+              { role: "user", content: "图标描述：" + prompt },
+            ],
+          }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error((e.error && e.error.message) || ("HTTP " + res.status));
+        }
+        const data = await res.json();
+        const raw = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (!raw || !raw.trim()) {
+          // deepseek-v4-flash 偶发空响应，重试
+          lastErr = "模型返回为空";
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+          continue;
+        }
+        const svg = clientExtractSvg(raw);
+        if (!svg) {
+          lastErr = "未能从返回中解析出 SVG";
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+          continue;
+        }
+        render(svg, style, color, size);
+        setStatus("✅ 生成成功");
+        $("gen").disabled = false;
+        return;
+      } catch (e) {
+        lastErr = e.message;
+        // 鉴权/参数类错误无需重试，直接报错
+        if (String(e.message).startsWith("HTTP")) {
+          setStatus("❌ " + e.message, true);
+          $("gen").disabled = false;
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 800 * attempt));
+      }
+    }
+    setStatus("❌ 多次尝试失败：" + lastErr, true);
+    $("gen").disabled = false;
+  }
+
+  function downloadSvg() {
+    if (!currentSvg) return;
+    const blob = new Blob([currentSvg], { type: "image/svg+xml" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "icon.svg";
+    a.click();
+  }
+
+  function downloadPng() {
+    const svgEl = $("preview").querySelector("svg");
+    if (!svgEl) return;
+    const size = parseInt($("size").value, 10) || 256;
+    const scale = 2;
+    const xml = new XMLSerializer().serializeToString(svgEl);
+    const url = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size * scale; canvas.height = size * scale;
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((b) => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = "icon.png";
+        a.click();
+      });
+    };
+    img.src = url;
+  }
+
+  async function copyCode() {
+    if (!currentSvg) return;
+    try { await navigator.clipboard.writeText($("code").value); setStatus("📋 已复制 SVG 代码"); }
+    catch { setStatus("复制失败，请手动选择代码", true); }
+  }
+
+  $("gen").addEventListener("click", generate);
+  $("dlSvg").addEventListener("click", downloadSvg);
+  $("dlPng").addEventListener("click", downloadPng);
+  $("copy").addEventListener("click", copyCode);
+  $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter") generate(); });
+</script>
+</body>
+</html>
